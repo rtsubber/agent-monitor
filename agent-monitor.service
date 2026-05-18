@@ -1,0 +1,17 @@
+[Unit]
+Description=Agent Monitor API
+After=network.target
+
+[Service]
+Type=simple
+User=ron
+WorkingDirectory=/home/ron/.openclaw/workspace/agent-monitor
+ExecStart=/home/ron/.openclaw/workspace/agent-monitor/venv/bin/python3 main.py
+Environment=PORT=8789
+Environment=AGENT_MONITOR_ADMIN_KEY=REDACTED
+Environment=AGENT_MONITOR_DB=/home/ron/.openclaw/workspace/agent-monitor/monitor.db
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
