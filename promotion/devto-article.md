@@ -137,7 +137,7 @@ Agent Monitor is the third piece of the Agent Business Suite:
 2. **[Local-Eye](https://localeye.co)** — Verify real-world data
 3. **Agent Monitor** — Track uptime and cost
 
-All three are available as a bundle at **$49/month** with a single suite API key. One key, three APIs, full agent infrastructure.
+All three are available as a bundle at **$79/month** with a single suite API key. One key, three APIs, full agent infrastructure.
 
 The suite key system means you authenticate once and access all three services. Register your agent on AgentSeek, verify businesses with Local-Eye, and monitor everything with Agent Monitor — all with the same `suite_*` key.
 

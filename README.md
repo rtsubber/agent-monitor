@@ -78,7 +78,7 @@ Part of the **Agent Business Suite**:
 |------|-------|---------------|-----------------|
 | Free | $0 | 100 | 1,000 |
 | Pro | $29/mo | 10,000 | 100,000 |
-| Suite Bundle | $49/mo | Unlimited | Unlimited |
+| Suite Bundle | $79/mo | Unlimited | Unlimited |
 
 ## Deployment
 
