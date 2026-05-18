@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
+User=ron
 WorkingDirectory=/home/ron/.openclaw/workspace/agent-monitor
 ExecStart=/usr/bin/python3 main.py
 EnvironmentFile=/home/ron/.openclaw/workspace/agent-monitor/.env
