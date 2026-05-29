@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Monitor — Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁️</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0f1e;
+            --surface: #111827;
+            --surface-light: #1e293b;
+            --border: #1e3a5f;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --green: #10b981;
+            --green-bg: rgba(16, 185, 129, 0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.1);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245, 158, 11, 0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.1);
+            --purple: #8b5cf6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .header h1 span { color: var(--green); }
+        .header p { color: var(--text-dim); font-size: 0.95rem; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        .auth-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .auth-panel h3 { margin-bottom: 1rem; font-size: 1rem; }
+        .auth-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .auth-row input {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+        .auth-row input:focus { outline: none; border-color: var(--blue); }
+        .auth-row select {
+            padding: 0.6rem 1rem;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+        }
+        .btn-primary:hover { background: #2563eb; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-card .sub {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+        .stat-green .value { color: var(--green); }
+        .stat-red .value { color: var(--red); }
+        .stat-blue .value { color: var(--blue); }
+        .stat-purple .value { color: var(--purple); }
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .agent-card {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .agent-info h4 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+        .agent-info p { font-size: 0.8rem; color: var(--text-dim); }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-alive { background: var(--green-bg); color: var(--green); }
+        .status-down { background: var(--red-bg); color: var(--red); }
+        .status-unknown { background: var(--yellow-bg); color: var(--yellow); }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-alive .status-dot { background: var(--green); animation: pulse 2s infinite; }
+        .status-down .status-dot { background: var(--red); }
+        .status-unknown .status-dot { background: var(--yellow); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .trust-bar {
+            width: 100px;
+            height: 6px;
+            background: var(--surface);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.3rem;
+        }
+        .trust-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+        }
+        .trust-verified { background: var(--green); }
+        .trust-trusted { background: var(--blue); }
+        .trust-unproven { background: var(--yellow); }
+        .trust-flagged { background: var(--red); }
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+        }
+        .empty-state .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+        }
+        .error-msg {
+            background: var(--red-bg);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--red);
+            margin-bottom: 1rem;
+        }
+        .trust-tier {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .tier-verified { background: var(--green-bg); color: var(--green); }
+        .tier-trusted { background: var(--blue-bg); color: var(--blue); }
+        .tier-unproven { background: var(--yellow-bg); color: var(--yellow); }
+        .tier-flagged { background: var(--red-bg); color: var(--red); }
+        .agent-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        .api-method {
+            font-size: 0.7rem;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .suite-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+        .suite-box h4 { color: var(--purple); margin-bottom: 0.5rem; }
+        .suite-links { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
+        .suite-links a {
+            color: var(--blue);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .suite-links a:hover { text-decoration: underline; }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+        footer a { color: var(--blue); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👁️ Agent <span>Monitor</span></h1>
+        <p>Uptime & cost monitoring for AI agents</p>
+    </div>
+
+    <div class="container">
+        <!-- Auth Panel -->
+        <div class="auth-panel">
+            <h3>🔑 Connect</h3>
+            <div class="auth-row">
+                <input type="password" id="apiKey" placeholder="Enter your API key or Suite key (suite_...)" autocomplete="off">
+                <select id="keyType">
+                    <option value="api">API Key</option>
+                    <option value="suite">Suite Key</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadDashboard()">Connect</button>
+            </div>
+            <div id="error" style="margin-top:0.75rem;display:none;"></div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading" style="display:none;">
+            <p>Loading dashboard data...</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div id="statsGrid" class="stats-grid" style="display:none;"></div>
+
+        <!-- Agents Section -->
+        <div id="agentsSection" class="section" style="display:none;">
+            <h3>🤖 Registered Agents</h3>
+            <div id="agentsList"></div>
+        </div>
+
+        <!-- Suite Info -->
+        <div id="suiteSection" style="display:none;"></div>
+
+        <!-- Recent Activity -->
+        <div id="activitySection" class="section" style="display:none;">
+            <h3>📊 Recent Activity</h3>
+            <div id="activityList"></div>
+        </div>
+
+        <!-- API Reference -->
+        <div class="section">
+            <h3>📋 API Endpoints</h3>
+            <div style="display:grid;gap:0.75rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">POST</span>
+                    <span>/v1/register</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— Register a new agent</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">POST</span>
+                    <span>/v1/heartbeat</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— Send heartbeat ping</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">POST</span>
+                    <span>/v1/spend</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— Report API spend</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">GET</span>
+                    <span>/v1/agents</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— List your agents</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">GET</span>
+                    <span>/v1/dashboard</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— Dashboard summary</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <span class="api-method">GET</span>
+                    <span>/v1/suite/keys</span>
+                    <span style="color:var(--text-dim);font-size:0.85rem;">— Get all suite keys</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Agent Monitor — Part of the <a href="https://agentseek.co">Agent Suite</a></p>
+        <p style="margin-top:0.5rem;"><a href="/docs">API Docs</a> · <a href="https://agentseek.co">AgentSeek</a> · <a href="https://localeye.co">Local-Eye</a> · <a href="https://agentpay.studio">AgentPay</a></p>
+    </footer>
+
+    <script>
+        const BASE = window.location.origin + '/monitor';
+
+        // Escape any value that originates from the API (agent names,
+        // descriptions, ids, error details) before inserting via innerHTML.
+        function esc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.innerHTML = `<div class="error-msg">${esc(msg)}</div>`;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function trustTier(score) {
+            if (score >= 90) return { label: 'Verified', class: 'tier-verified', bar: 'trust-verified' };
+            if (score >= 70) return { label: 'Trusted', class: 'tier-trusted', bar: 'trust-trusted' };
+            if (score >= 35) return { label: 'Unproven', class: 'tier-unproven', bar: 'trust-unproven' };
+            return { label: 'Flagged', class: 'tier-flagged', bar: 'trust-flagged' };
+        }
+
+        async function loadDashboard() {
+            hideError();
+            const key = document.getElementById('apiKey').value.trim();
+            const keyType = document.getElementById('keyType').value;
+
+            if (!key) {
+                showError('Please enter an API key or Suite key');
+                return;
+            }
+
+            const headerName = keyType === 'suite' ? 'X-Suite-Key' : 'X-API-Key';
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('statsGrid').style.display = 'none';
+            document.getElementById('agentsSection').style.display = 'none';
+            document.getElementById('activitySection').style.display = 'none';
+            document.getElementById('suiteSection').style.display = 'none';
+
+            try {
+                if (keyType === 'suite') {
+                    await loadSuiteDashboard(key, headerName);
+                } else {
+                    await loadAPIDashboard(key, headerName);
+                }
+            } catch (err) {
+                showError(`Connection error: ${err.message}. Make sure the API key is correct.`);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function loadAPIDashboard(key, headerName) {
+            // Load dashboard data
+            const dashResp = await fetch(`${BASE}/v1/dashboard`, {
+                headers: { [headerName]: key }
+            });
+
+            if (!dashResp.ok) {
+                const data = await dashResp.json().catch(() => ({}));
+                showError(data.detail || `Error ${dashResp.status}: Authentication failed`);
+                return;
+            }
+
+            const dash = await dashResp.json();
+
+            // Load agents
+            const agentsResp = await fetch(`${BASE}/v1/agents`, {
+                headers: { [headerName]: key }
+            });
+            const agents = agentsResp.ok ? await agentsResp.json() : [];
+
+            // Render stats
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card stat-green">
+                    <div class="label">Agents Alive</div>
+                    <div class="value">${dash.agents_alive}</div>
+                    <div class="sub">of ${dash.total_agents} total</div>
+                </div>
+                <div class="stat-card stat-red">
+                    <div class="label">Agents Down</div>
+                    <div class="value">${dash.agents_down}</div>
+                    <div class="sub">${dash.open_incidents} open incidents</div>
+                </div>
+                <div class="stat-card stat-blue">
+                    <div class="label">Monthly Spend</div>
+                    <div class="value">$${dash.monthly_spend.toFixed(2)}</div>
+                    <div class="sub">of $${dash.spend_limit} limit</div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="label">Heartbeat Limit</div>
+                    <div class="value">${dash.heartbeat_limit}</div>
+                    <div class="sub">per month</div>
+                </div>
+            `;
+            document.getElementById('statsGrid').style.display = 'grid';
+
+            // Render agents
+            if (agents.length === 0) {
+                document.getElementById('agentsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🤖</div>
+                        <p>No agents registered yet</p>
+                        <p style="font-size:0.8rem;margin-top:0.5rem;">POST to /v1/register to add your first agent</p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('agentsList').innerHTML = agents.map(a => {
+                    const tier = trustTier(a.trust_score || 0);
+                    const score = a.trust_score !== null ? a.trust_score : '—';
+                    const statusClass = a.is_alive ? 'status-alive' : 'status-down';
+                    const statusText = a.is_alive ? 'Alive' : 'Down';
+                    return `
+                        <div class="agent-card">
+                            <div class="agent-info">
+                                <h4>${esc(a.name || a.agent_id)}</h4>
+                                <p style="font-size:0.75rem;color:var(--text-dim);">${esc(a.agent_id)}</p>
+                                <div class="agent-meta">
+                                    <span>Trust: <strong>${score}</strong></span>
+                                    <span class="trust-tier ${tier.class}">${tier.label}</span>
+                                </div>
+                                ${a.trust_score !== null ? `<div class="trust-bar"><div class="trust-fill ${tier.bar}" style="width:${a.trust_score}%"></div></div>` : ''}
+                            </div>
+                            <span class="status-badge ${statusClass}"><span class="status-dot"></span>${statusText}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+            document.getElementById('agentsSection').style.display = 'block';
+        }
+
+        async function loadSuiteDashboard(key, headerName) {
+            // Load suite keys
+            const suiteResp = await fetch(`${BASE}/v1/suite/keys`, {
+                headers: { [headerName]: key }
+            });
+
+            if (!suiteResp.ok) {
+                const data = await suiteResp.json().catch(() => ({}));
+                showError(data.detail || `Error ${suiteResp.status}: Suite key not found`);
+                return;
+            }
+
+            const suiteData = await suiteResp.json();
+
+            // Also load admin stats
+            let adminData = null;
+            try {
+                const adminResp = await fetch(`${BASE}/v1/admin/stats`, {
+                    headers: { 'X-Admin-Key': key }
+                });
+                if (adminResp.ok) adminData = await adminResp.json();
+            } catch (e) {}
+
+            // Render suite info
+            document.getElementById('statsGrid').innerHTML = adminData ? `
+                <div class="stat-card stat-green">
+                    <div class="label">Total Agents</div>
+                    <div class="value">${adminData.total_agents}</div>
+                </div>
+                <div class="stat-card stat-blue">
+                    <div class="label">Total Heartbeats</div>
+                    <div class="value">${adminData.total_heartbeats}</div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="label">Total Spend</div>
+                    <div class="value">$${adminData.total_spend.toFixed(2)}</div>
+                </div>
+                <div class="stat-card stat-red">
+                    <div class="label">Open Incidents</div>
+                    <div class="value">${adminData.open_incidents}</div>
+                </div>
+            ` : `
+                <div class="stat-card stat-green">
+                    <div class="label">Suite Connected</div>
+                    <div class="value">✓</div>
+                </div>
+            `;
+            document.getElementById('statsGrid').style.display = 'grid';
+
+            // Suite keys box
+            document.getElementById('suiteSection').innerHTML = `
+                <div class="suite-box">
+                    <h4>🔑 Your Suite Keys</h4>
+                    <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.5rem;">One key gives access to all four services</p>
+                    <div style="display:grid;gap:0.5rem;font-family:monospace;font-size:0.8rem;">
+                        <div><strong>Monitor:</strong> <code>${esc(suiteData.monitor_key || '—')}</code></div>
+                        <div><strong>Local-Eye:</strong> <code>${esc(suiteData.localeye_key || '—')}</code></div>
+                        <div><strong>AgentSeek:</strong> <code>${esc(suiteData.agentseek_key || '—')}</code></div>
+                    </div>
+                    <div class="suite-links">
+                        <a href="${suiteData.endpoints?.agent_monitor || '#'}" target="_blank">Agent Monitor API</a>
+                        <a href="${suiteData.endpoints?.local_eye || '#'}" target="_blank">Local-Eye API</a>
+                        <a href="${suiteData.endpoints?.agent_seek || '#'}" target="_blank">AgentSeek API</a>
+                    </div>
+                </div>
+            `;
+            document.getElementById('suiteSection').style.display = 'block';
+        }
+
+        // Auto-load if key is in URL hash
+        if (window.location.hash) {
+            const key = window.location.hash.substring(1);
+            document.getElementById('apiKey').value = key;
+            if (key.startsWith('suite_')) {
+                document.getElementById('keyType').value = 'suite';
+            }
+            loadDashboard();
+        }
+    </script>
+</body>
+</html>
